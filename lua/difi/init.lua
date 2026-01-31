@@ -118,7 +118,8 @@ function M.toggle(args)
     if M.state.active then
         restore_view()
     else
-        local target = (args and args ~= "") and args or nil
+        -- Priority: 1. Args, 2. Env Var (from difi CLI), 3. Default (HEAD)
+        local target = (args and args ~= "") and args or vim.env.DIFI_TARGET
         apply_diff_view(target)
     end
 end

@@ -72,8 +72,10 @@ local function apply_diff_view(target)
         return
     end
 
+    -- Apply content
     vim.api.nvim_buf_set_lines(0, 0, -1, false, new_buffer_lines)
 
+    -- Apply Highlights
     set_highlights()
     for i, line in ipairs(new_buffer_lines) do
         if line:match("^-") then
@@ -95,16 +97,50 @@ local function restore_view()
         local first_char = line:sub(1, 1)
 
         if first_char == "-" then
+            -- Drop deleted lines
         elseif first_char == "+" then
+            -- Keep added lines, strip marker
             table.insert(final_lines, line:sub(2))
         elseif first_char == " " then
+            -- Keep context lines, strip marker
             table.insert(final_lines, line:sub(2))
         else
+            -- Keep modified lines
             table.insert(final_lines, line)
         end
     end
 
     vim.api.nvim_buf_set_lines(0, 0, -1, false, final_lines)
+
+    -- SMART RESET: Check if content matches disk (Tolerant of trailing newline)
+    local filename = vim.fn.expand("%")
+    if vim.fn.filereadable(filename) == 1 then
+        vim.cmd("checktime") -- Ensure we see the latest disk state
+        local disk_lines = vim.fn.readfile(filename)
+
+        -- Often one source has an empty string at the end and the other doesn't.
+        -- We allow a 1-line difference if that line is empty.
+        local diff_count = #disk_lines - #final_lines
+        local size_match = (diff_count == 0) or (diff_count == 1 and disk_lines[#disk_lines] == "") or
+        (diff_count == -1 and final_lines[#final_lines] == "")
+
+        if size_match then
+            local match = true
+            -- Compare the overlapping lines
+            local limit = math.min(#disk_lines, #final_lines)
+            for i = 1, limit do
+                if disk_lines[i] ~= final_lines[i] then
+                    match = false
+                    break
+                end
+            end
+
+            if match then
+                -- It's a match! Force the buffer to be "clean"
+                vim.api.nvim_set_option_value("modified", false, { buf = 0 })
+            end
+        end
+    end
 
     if M.state.ns_id ~= -1 then
         vim.api.nvim_buf_clear_namespace(0, M.state.ns_id, 0, -1)
@@ -118,7 +154,6 @@ function M.toggle(args)
     if M.state.active then
         restore_view()
     else
-        -- Priority: 1. Args, 2. Env Var (from difi CLI), 3. Default (HEAD)
         local target = (args and args ~= "") and args or vim.env.DIFI_TARGET
         apply_diff_view(target)
     end

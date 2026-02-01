@@ -14,12 +14,18 @@ end, {})
 local env_target = vim.env.DIFI_TARGET
 
 if env_target then
-    vim.api.nvim_create_autocmd("VimEnter", {
-        callback = function()
-            if vim.fn.filereadable(vim.fn.expand("%")) == 1 then
-                require("difi").toggle(env_target)
-            end
-        end,
-        once = true
-    })
+    local function auto_start()
+        if vim.fn.filereadable(vim.fn.expand("%")) == 1 then
+            require("difi").toggle(env_target)
+        end
+    end
+
+    if vim.v.vim_did_enter == 1 then
+        auto_start()
+    else
+        vim.api.nvim_create_autocmd("VimEnter", {
+            callback = auto_start,
+            once = true
+        })
+    end
 end

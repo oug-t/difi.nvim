@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/390db729-187e-409b-9e6a-77db042878ef" alt="difi" />
+  <img src= "https://github.com/user-attachments/assets/2cecb580-fe35-47ae-886b-8315226d122b" alt="difi_demo" />
 </p>
 
 ## Features
